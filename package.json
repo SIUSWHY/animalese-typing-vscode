@@ -2,7 +2,8 @@
   "name": "animalese-typing-vscode",
   "displayName": "Animalese Typing",
   "description": "Play Animalese sounds when typing in VSCode, just like in Animal Crossing!",
-  "version": "0.0.3",
+  "version": "0.0.4",
+  "icon": "icon.png",
   "publisher": "SIUSWHY",
   "repository": {
     "type": "git",
@@ -32,7 +33,8 @@
   "main": "./out/extension.js",
   "files": [
     "out/**/*",
-    "assets/audio_wav/**/*"
+    "assets/audio_wav/**/*",
+    "icon.png"
   ],
   "contributes": {
     "commands": [
