@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
-const playSound = require("play-sound");
+import * as os from "os";
+import { spawn } from "child_process";
 
 /**
  * Manages Animalese sound playback using real audio files
@@ -13,7 +14,7 @@ export class AnimaleSounds {
   private specialSounds: boolean = true;
   private lastPlayTime: number = 0;
   private playbackDelay: number = 50; // Minimum delay between sounds in ms
-  private audioPlayer: any = null;
+  private audioPlayer: string | null = null;
   private audioFiles: { [key: string]: string } = {};
   private currentCharacter: string = "a";
 
@@ -86,11 +87,75 @@ export class AnimaleSounds {
    * Initialize audio player and load audio files
    */
   private initializeAudio(): void {
+    this.loadAudioFiles();
+
+    const platform = os.platform();
+    const isDebug = vscode.workspace
+      .getConfiguration("animalese")
+      .get<boolean>("debug", false);
+
+    if (isDebug) {
+      console.log(`[Animalese] Initializing audio on platform: ${platform}`);
+    }
+
+    // Find available audio player
+    this.audioPlayer = this.findAudioPlayer(platform);
+
+    if (this.audioPlayer && isDebug) {
+      console.log(`[Animalese] Audio initialized with: ${this.audioPlayer}`);
+    } else if (isDebug) {
+      console.log("[Animalese] No audio player found - using visual fallback");
+    }
+  }
+
+  /**
+   * Find available audio player on the system
+   */
+  private findAudioPlayer(platform: string): string | null {
+    const players: string[] = [];
+
+    if (platform === "linux") {
+      // For Linux, try PulseAudio first (works better with AppImages)
+      players.push("paplay", "/usr/bin/paplay", "/usr/bin/aplay", "aplay");
+    } else if (platform === "darwin") {
+      // macOS
+      players.push("afplay");
+    } else if (platform === "win32") {
+      // Windows - we'll use PowerShell's Add-Type for audio
+      return "powershell";
+    }
+
+    // Test each player to see if it's available
+    for (const player of players) {
+      if (this.testAudioPlayer(player)) {
+        return player;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Test if an audio player is available on the system
+   */
+  private testAudioPlayer(player: string): boolean {
     try {
-      this.audioPlayer = playSound();
-      this.loadAudioFiles();
-    } catch (error) {
-      console.log("Audio initialization skipped - using fallback methods");
+      // Try to run the player with --version or --help to see if it exists
+      const result = spawn(player, ["--version"], {
+        stdio: "ignore",
+        timeout: 1000,
+      });
+      return true;
+    } catch {
+      try {
+        const result = spawn(player, ["--help"], {
+          stdio: "ignore",
+          timeout: 1000,
+        });
+        return true;
+      } catch {
+        return false;
+      }
     }
   }
 
@@ -356,21 +421,37 @@ export class AnimaleSounds {
 
     try {
       const audioFile = this.getAudioFileForCharacter(character || "a");
-      if (!audioFile) {
+      if (!audioFile || !this.audioPlayer) {
         return false;
       }
 
-      // Play the audio file
-      this.audioPlayer.play(audioFile, { timeout: 1000 }, (err: any) => {
-        if (
-          err &&
-          vscode.workspace
-            .getConfiguration("animalese")
-            .get<boolean>("debug", false)
-        ) {
-          console.log("[Animalese] Audio playback error:", err.message);
+      // Play the audio file using system audio player
+      const isDebug = vscode.workspace
+        .getConfiguration("animalese")
+        .get<boolean>("debug", false);
+
+      if (this.audioPlayer === "powershell") {
+        // Windows PowerShell audio playback
+        const psCommand = `Add-Type -AssemblyName presentationCore; $player = New-Object System.Media.SoundPlayer('${audioFile}'); $player.Play()`;
+        const child = spawn("powershell", ["-Command", psCommand], {
+          stdio: "ignore",
+          detached: true,
+        });
+        child.unref();
+      } else {
+        // Linux/macOS audio playback
+        const child = spawn(this.audioPlayer, [audioFile], {
+          stdio: "ignore",
+          detached: true,
+        });
+        child.unref();
+
+        if (isDebug) {
+          child.on("error", (err) => {
+            console.log("[Animalese] Audio playback error:", err.message);
+          });
         }
-      });
+      }
 
       return true;
     } catch (error) {
