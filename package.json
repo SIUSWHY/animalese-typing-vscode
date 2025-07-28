@@ -1,0 +1,130 @@
+{
+  "name": "animalese-typing-vscode",
+  "displayName": "Animalese Typing",
+  "description": "Play Animalese sounds when typing in VSCode, just like in Animal Crossing!",
+  "version": "0.0.1",
+  "publisher": "animalese",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Extension Packs"
+  ],
+  "keywords": [
+    "typing",
+    "sound",
+    "animalese",
+    "animal-crossing",
+    "fun"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "files": [
+    "out/**/*",
+    "assets/audio_wav/**/*"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "animalese.toggle",
+        "title": "Toggle Animalese Typing",
+        "category": "Animalese"
+      },
+      {
+        "command": "animalese.changeVoice",
+        "title": "Change Voice",
+        "category": "Animalese"
+      },
+      {
+        "command": "animalese.settings",
+        "title": "Open Settings",
+        "category": "Animalese"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "animalese.toggle",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      }
+    ],
+    "configuration": {
+      "title": "Animalese Typing",
+      "properties": {
+        "animalese.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Animalese typing sounds"
+        },
+        "animalese.voice": {
+          "type": "string",
+          "default": "male1",
+          "enum": [
+            "male1",
+            "male2",
+            "male3",
+            "male4",
+            "female1",
+            "female2",
+            "female3",
+            "female4"
+          ],
+          "description": "Voice type for Animalese sounds"
+        },
+        "animalese.pitch": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 2,
+          "description": "Pitch modifier for voice"
+        },
+        "animalese.volume": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Volume level for sounds"
+        },
+        "animalese.specialSounds": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable special sound effects for special characters"
+        },
+        "animalese.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug logging"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/play-sound": "^1.1.2",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-electron": "^2.3.4",
+    "eslint": "^8.28.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "node-ffmpeg-stream": "^1.1.0",
+    "play-sound": "^1.1.6"
+  }
+}
