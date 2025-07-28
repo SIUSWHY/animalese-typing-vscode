@@ -251,75 +251,56 @@ export class AnimaleSounds {
   }
 
   /**
-   * Plays a musical note for numbers
+   * Plays real audio file for numbers
    */
   private playNumberSound(number: string): void {
     this.currentCharacter = number;
-    const noteFrequencies = [
-      261.63, // C4 - 1
-      293.66, // D4 - 2
-      329.63, // E4 - 3
-      349.23, // F4 - 4
-      392.0, // G4 - 5
-      440.0, // A4 - 6
-      493.88, // B4 - 7
-      523.25, // C5 - 8
-      587.33, // D5 - 9
-      659.25, // E5 - 0
-    ];
-
-    const index = number === "0" ? 9 : parseInt(number) - 1;
-    const frequency = noteFrequencies[index];
-    this.playTone(frequency, 0.2, this.pitch, "note");
+    // Use real audio files for numbers - they exist in the animalese directory
+    this.playTone(0, 0, this.pitch, "number");
   }
 
   /**
    * Plays special sound effects for special characters
    */
   private playSpecialSound(char: string): void {
-    let frequency: number;
-    let duration: number;
+    this.currentCharacter = char;
+
+    // Map special characters to appropriate sounds
+    // Some characters like ! and ? also trigger special animalese sounds
     let soundType = "special";
 
     switch (char) {
-      case "@":
-        frequency = 800;
-        duration = 0.1;
-        break;
-      case "#":
-        frequency = 600;
-        duration = 0.08;
-        break;
       case "!":
-        frequency = 1000;
-        duration = 0.15;
         soundType = "exclamation";
         break;
       case "?":
-        frequency = 400;
-        duration = 0.12;
         soundType = "question";
         break;
+      case "@":
+      case "#":
       case "~":
-        frequency = 300;
-        duration = 0.2;
-        break;
       case ".":
-        frequency = 200;
-        duration = 0.1;
-        soundType = "period";
-        break;
       case ",":
-        frequency = 250;
-        duration = 0.05;
-        soundType = "comma";
+      case "$":
+      case "%":
+      case "^":
+      case "&":
+      case "*":
+      case "(":
+      case ")":
+      case "[":
+      case "]":
+      case "{":
+      case "}":
+      case "/":
+      case "\\":
+        soundType = "special";
         break;
       default:
-        frequency = 500;
-        duration = 0.06;
+        soundType = "special";
     }
 
-    this.playTone(frequency, duration, this.pitch, soundType);
+    this.playTone(0, 0, this.pitch, soundType);
   }
 
   /**
@@ -412,7 +393,7 @@ export class AnimaleSounds {
   }
 
   /**
-   * Plays real Animalese audio file
+   * Plays real Animalese audio file or SFX
    */
   private playAnimalseAudio(soundType: string, character?: string): boolean {
     if (!this.audioPlayer) {
@@ -420,7 +401,26 @@ export class AnimaleSounds {
     }
 
     try {
-      const audioFile = this.getAudioFileForCharacter(character || "a");
+      let audioFile: string | null = null;
+
+      // Determine which type of audio file to use
+      if (
+        soundType === "special" ||
+        soundType === "exclamation" ||
+        soundType === "question"
+      ) {
+        // Use SFX files for special characters
+        audioFile = this.getSFXFileForCharacter(character || "default");
+
+        // For ! and ? also try animalese versions (Gwah/Deska) if SFX not found
+        if (!audioFile && (character === "!" || character === "?")) {
+          audioFile = this.getAudioFileForCharacter(character);
+        }
+      } else {
+        // Use regular animalese voice files for letters, numbers
+        audioFile = this.getAudioFileForCharacter(character || "a");
+      }
+
       if (!audioFile || !this.audioPlayer) {
         return false;
       }
@@ -478,10 +478,62 @@ export class AnimaleSounds {
     if (!genderDir) return null;
 
     const voiceDir = path.join(genderDir, `voice_${voiceNumber}`);
-    const fileName = `${character.toLowerCase()}.wav`;
-    const filePath = path.join(voiceDir, fileName);
 
-    return filePath;
+    // Handle special cases for animalese voices
+    switch (character) {
+      case "!":
+        return path.join(voiceDir, "Gwah.wav");
+      case "?":
+        return path.join(voiceDir, "Deska.wav");
+      case "OK":
+        return path.join(voiceDir, "OK.wav");
+      default:
+        const fileName = `${character.toLowerCase()}.wav`;
+        return path.join(voiceDir, fileName);
+    }
+  }
+
+  /**
+   * Gets SFX file path for special characters
+   */
+  private getSFXFileForCharacter(character: string): string | null {
+    const sfxDir = path.join(this.extensionPath, "assets", "audio_wav", "sfx");
+
+    // Map characters to SFX file names based on original extension
+    const characterToSFXMap: { [key: string]: string } = {
+      "@": "at.wav",
+      "#": "pound.wav",
+      $: "dollar.wav",
+      "%": "percent.wav",
+      "^": "caret.wav",
+      "&": "ampersand.wav",
+      "*": "asterisk.wav",
+      "(": "parenthesis_open.wav",
+      ")": "parenthesis_closed.wav",
+      "[": "bracket_open.wav",
+      "]": "bracket_closed.wav",
+      "{": "brace_open.wav",
+      "}": "brace_closed.wav",
+      "/": "slash_forward.wav",
+      "\\": "slash_back.wav",
+      "~": "tilde.wav",
+      "!": "exclamation.wav",
+      "?": "question.wav",
+      // Additional SFX mappings
+      default: "default.wav",
+      backspace: "backspace.wav",
+      enter: "enter.wav",
+      tab: "tab.wav",
+      arrow_left: "arrow_left.wav",
+      arrow_right: "arrow_right.wav",
+      arrow_up: "arrow_up.wav",
+      arrow_down: "arrow_down.wav",
+    };
+
+    const fileName = characterToSFXMap[character];
+    if (!fileName) return null;
+
+    return path.join(sfxDir, fileName);
   }
 
   /**
